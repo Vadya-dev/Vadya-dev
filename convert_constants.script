@@ -1,0 +1,55 @@
+-- Назови этот файл, например, convert_constants.lua
+
+-- Функция для чтения файла и преобразования его в Lua-таблицу
+local function convert_to_lua(input_file, output_file)
+    -- Открываем исходный файл для чтения
+    local input = io.open(input_file, "r")
+    if not input then
+        print("Ошибка: не удалось открыть файл " .. input_file)
+        return
+    end
+
+    -- Открываем выходной файл для записи
+    local output = io.open(output_file, "w")
+    if not output then
+        print("Ошибка: не удалось создать файл " .. output_file)
+        input:close()
+        return
+    end
+
+    -- Начало Lua-таблицы
+    output:write("local constants = {\n")
+
+    -- Читаем файл построчно
+    for line in input:lines() do
+        -- Ищем строки вида "#define ИМЯ ЗНАЧЕНИЕ"
+        local name, value = line:match("#const%s+(%S+)%s+(%S+)")
+        if name and value then
+            -- Проверяем, является ли значение числом
+            local num_value = tonumber(value)
+            if num_value then
+                -- Если число, записываем без кавычек
+                output:write("    " .. name .. " = " .. num_value .. ",\n")
+            else
+                -- Если строка, добавляем кавычки
+                output:write("    " .. name .. " = \"" .. value .. "\",\n")
+            end
+        end
+    end
+
+    -- Завершаем таблицу и возвращаем её
+    output:write("}\n\nreturn constants\n")
+
+    -- Закрываем файлы
+    input:close()
+    output:close()
+
+    print("Конвертация завершена! Результат в " .. output_file)
+end
+
+-- Укажи имена файлов
+local input_file = "lua_help.lua"  -- Входной файл с константами из C++
+local output_file = "constants.lua" -- Выходной Lua-файл
+
+-- Запускаем конвертацию
+convert_to_lua(input_file, output_file)

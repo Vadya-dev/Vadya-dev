@@ -1,0 +1,63 @@
+-- Функция для анализа одного файла
+local function find_globals(file_path)
+    local globals = {}
+    local file = io.open(file_path, "r")
+    if not file then
+        print("Не смог открыть файл: " .. file_path)
+        return globals
+    end
+
+    for line in file:lines() do
+        -- Убираем комментарии (всё после --)
+        line = line:match("^(.-)%-%-.*$") or line
+        -- Пропускаем строки с local
+        if not line:match("^%s*local") then
+            -- Ищем присваивания вида var = value
+            for var in line:gmatch("([%w_]+)%s*=%s*[^=]") do
+                globals[var] = true
+            end
+            -- Ищем функции вида function name()
+            for func in line:gmatch("function%s+([%w_]+)%s*%(") do
+                globals[func] = true
+            end
+            -- Ищем таблицы вида table = {}
+            for table in line:gmatch("([%w_]+)%s*=%s*{%s*}") do
+                globals[table] = true
+            end
+        end
+    end
+    file:close()
+    return globals
+end
+
+-- Функция для анализа всех файлов в директории
+local function find_globals_in_dir(dir_path)
+    local globals = {}
+    local lfs = require("lfs") -- Нужна библиотека LuaFileSystem
+    if not lfs then
+        print("Установи LuaFileSystem (lfs), чтобы работать с директориями!")
+        return globals
+    end
+
+    for file in lfs.dir(dir_path) do
+        if file:match("%.script$") then -- Ищем .script файлы
+            local file_path = dir_path .. "\\" .. file -- Используем обратный слеш для Windows
+            print("Анализирую: " .. file_path)
+            local file_globals = find_globals(file_path)
+            for var in pairs(file_globals) do
+                globals[var] = true
+            end
+        end
+    end
+    return globals
+end
+
+-- Указываем путь с экранированием
+local dir_path = "C:\\Program Files (x86)\\Games\\S.T.A.L.K.E.R. Тень Чернобыля\\UEgamedata\\scripts"
+local globals = find_globals_in_dir(dir_path)
+
+-- Выводим все найденные глобальные переменные
+print("Глобальные переменные:")
+for var in pairs(globals) do
+    print(var)
+end
